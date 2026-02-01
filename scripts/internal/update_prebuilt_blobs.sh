@@ -69,6 +69,9 @@ case "$1" in
     "prebuilts/samsung/pa1qxxx")
         FIRMWARE="SM-S931B/EUX/350466671872843"
         ;;
+    "prebuilts/samsung/a36xqnaxx")
+        FIRMWARE="SM-A366E/INS/357178223702799"
+        ;;
     "prebuilts/samsung/a70q")
         echo "Quasi folder. Can't do that!"
         exit 1
