@@ -73,14 +73,14 @@ jobs:
           echo "PDA_BUILD=$(cat ./${{ matrix.path }}/.current | cut -d "/" -f 1)" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           add-paths: |
-            ${{ matrix.path }}
-          commit-message: 'prebuilts/samsung/${{ matrix.device }}: update blobs to ${{ env.PDA_BUILD }}
+            prebuilts/samsung/${{ matrix.device }}
+          commit-message: 'prebuilts/samsung/${{ matrix.device }}: update blobs to ${{ env.PDA_BUILD }}'
           committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
-          branch: '${{ matrix.path }}'
+          branch: 'prebuilts/samsung/${{ matrix.device }}'
           delete-branch: true
           title: 'Update prebuilts/samsung/${{ matrix.device }} blobs to ${{ env.PDA_BUILD }}'
           body: ''
