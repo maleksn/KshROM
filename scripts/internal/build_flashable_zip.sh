@@ -54,10 +54,10 @@ PRINT_HEADER()
     echo    'ui_print(" ");'
     echo    'ui_print("****************************************");'
     echo -n 'ui_print("'
-    echo -n "UN1CA-A70 Core Version $ROM_VERSION"
+    echo -n "KshROM-$ROM_CODENAME by Kianish @XDAForums"
     echo    '");'
-    echo    'ui_print("UN1CA-A70 by Tisenu100");'
-    echo    'ui_print("UN1CA base by salvo_giangri et al.,");'
+    echo    'ui_print("LegacyUI by tsn2001 @XDAForums");'
+    echo    'ui_print("UN1CA base by salvo_giangri @XDAForums");'
     echo    'ui_print("****************************************");'
     echo -n 'ui_print("'
     echo -n "Base from: $(GET_PROP "ro.product.system.model" "$WORK_DIR/system/system/build.prop")"
@@ -175,7 +175,7 @@ GENERATE_BUILD_INFO()
     true
 }
 
-FILE_NAME="UN1CA_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
+FILE_NAME="KshROM_${ROM_CODENAME}_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
 CERT_NAME="aosp_testkey"
 $ROM_IS_OFFICIAL && [ -f "$SRC_DIR/security/unica_ota.pk8" ] && CERT_NAME="unica_ota"
 # ]
