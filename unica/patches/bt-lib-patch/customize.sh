@@ -1,8 +1,3 @@
-echo "Removing current bluetooth Stack.. "
-DELETE_FROM_WORK_DIR "system" "system/apex/com.android.bt.apex"
-echo "[BETA] Adding bluetooth stack.."
-ADD_TO_WORK_DIR "a36xqnaxx" "system" "system/apex/com.android.bt.apex" 0 0 644 "u:object_r:system_file:s0"
-
 if [ ! -f "$WORK_DIR/system/system/lib64/libbluetooth_jni.so" ]; then
     [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
     mkdir -p "$TMP_DIR"
