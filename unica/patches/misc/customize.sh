@@ -1,7 +1,3 @@
-echo "Setting display number with a custom one.. "
-VALUE="$(GET_PROP "$WORK_DIR/system/system/build.prop" "ro.build.display.id")"
-SET_PROP "system" "ro.build.display.id" "KshROM ${ROM_CODENAME} $(echo -n ${ROM_VERSION} | cut -d "-" -f1)- ${TARGET_CODENAME} [$VALUE]"
-
 # Crok's RAM Managment Fix
 # https://github.com/crok/crokrammgmtfix/blob/master/service.sh#L27-L32
 echo "Adding crok's ram management fix.."
