@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2023 Salvo Giangreco
+# Copyright (C) 2025 Salvo Giangreco
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,19 +15,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# UN1CA configuration file
-ROM_VERSION="2.0.5"
+VERSION_MAJOR=2
+VERSION_MINOR=5
+VERSION_PATCH=0
+ROM_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+# Append current commit hash to version name
 ROM_VERSION+="-$(git rev-parse --short HEAD)"
-ROM_CODENAME="Nexora"
 
-# Source ROM firmware
-
-# Galaxy A73 (parrot)
-SOURCE_FIRMWARE="SM-A736B/CAL/352828296406505"
-SOURCE_EXTRA_FIRMWARES=("SM-S911N/KOO/351357511542275")
-SOURCE_PRODUCT_CODE=SM-A736BZAGTHL
-SOURCE_HAS_SYSTEM_EXT=true
-SOURCE_HAS_PRODUCT=true
-SOURCE_SUPER_GROUP_NAME="qti_dynamic_partitions"
-
-return 0
+# Match latest Samsung's flagship device codename
+# - 1.x.x: Diamond (S23)
+# - 2.x.x: Eureka (S24)
+# - 3.x.x: Paradigm (S25)
+ROM_CODENAME="nxt"
