@@ -19,8 +19,11 @@
 TARGET_NAME="Galaxy A70"
 TARGET_CODENAME="a70q"
 TARGET_HAS_SYSTEM_EXT=false
-# The Galaxy A70's product partition can't fit
-# a debloated product partition. Place it within
-# system instead.
 TARGET_HAS_PRODUCT=false
+TARGET_SINGLE_SYSTEM_IMAGE="qssi"
+TARGET_VENDOR_API_LEVEL=30
 
+# SEC Product Feature
+TARGET_SSRM_CONFIG_NAME="siop_a70q_sm6150"
+TARGET_IS_ESIM_SUPPORTED=false
+TARGET_DVFS_CONFIG_NAME="dvfs_policy_sm6150_xx"
