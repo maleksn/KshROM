@@ -52,42 +52,39 @@ GEN_CONFIG_FILE()
         echo "ROM_VERSION=\"${ROM_VERSION:?}\""
         echo "ROM_CODENAME=\"${ROM_CODENAME:?}\""
         echo "ROM_BUILD_TIMESTAMP=\"$(date '+%s')\""
+        echo "SOURCE_CODENAME=\"${SOURCE_CODENAME:?}\""
         echo "SOURCE_FIRMWARE=\"${SOURCE_FIRMWARE:?}\""
-        if [ "${#SOURCE_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
-            echo "SOURCE_EXTRA_FIRMWARES=\"$( IFS=:; printf '%s' "${SOURCE_EXTRA_FIRMWARES[*]}" )\""
-        else
-            echo "SOURCE_EXTRA_FIRMWARES=\"\""
+        if [ -n "${SOURCE_EXTRA_FIRMWARES[*]:-}" ]; then
+           echo "SOURCE_EXTRA_FIRMWARES=\"$(IFS=:; printf '%s' "${SOURCE_EXTRA_FIRMWARES[*]}")\""
         fi
         echo "SOURCE_PRODUCT_CODE=\"${SOURCE_PRODUCT_CODE:?}\""
+        echo "SOURCE_SSRM_CONFIG_NAME=\"${SOURCE_SSRM_CONFIG_NAME:?}\""
+        echo "SOURCE_IS_ESIM_SUPPORTED=\"${SOURCE_IS_ESIM_SUPPORTED:?}\""
+        echo "SOURCE_DVFS_CONFIG_NAME=\"${SOURCE_DVFS_CONFIG_NAME:?}\""
         echo "TARGET_NAME=\"${TARGET_NAME:?}\""
         echo "TARGET_CODENAME=\"${TARGET_CODENAME:?}\""
-        if [ "${#TARGET_ASSERT_MODEL[@]}" -ge 1 ]; then
-            echo "TARGET_ASSERT_MODEL=\"$( IFS=:; printf '%s' "${TARGET_ASSERT_MODEL[*]}" )\""
-        else
-            echo "TARGET_ASSERT_MODEL=\"\""
-        fi
-        if [ "${#TARGET_FIRMWARE[@]}" -ge 1 ]; then
-            echo "TARGET_FIRMWARE=\"$( IFS=:; printf '%s' "${TARGET_FIRMWARE[*]}" )\""
-        else
-            echo "TARGET_FIRMWARE=\"\""
-        fi
-        if [ "${#TARGET_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
-            echo "TARGET_EXTRA_FIRMWARES=\"$( IFS=:; printf '%s' "${TARGET_EXTRA_FIRMWARES[*]}" )\""
-        else
-            echo "TARGET_EXTRA_FIRMWARES=\"\""
-        fi
         echo "TARGET_OS_FILE_SYSTEM=\"${TARGET_OS_FILE_SYSTEM:=erofs}\""
-        echo "TARGET_INCLUDE_PATCHED_VBMETA=\"${TARGET_INCLUDE_PATCHED_VBMETA:=false}\""
-        echo "TARGET_KEEP_ORIGINAL_SIGN=\"${TARGET_KEEP_ORIGINAL_SIGN:=false}\""
         echo "SOURCE_HAS_SYSTEM_EXT=\"${SOURCE_HAS_SYSTEM_EXT:?}\""
         echo "TARGET_HAS_SYSTEM_EXT=\"${TARGET_HAS_SYSTEM_EXT:?}\""
         echo "SOURCE_HAS_PRODUCT=\"${SOURCE_HAS_PRODUCT:?}\""
         echo "TARGET_HAS_PRODUCT=\"${TARGET_HAS_PRODUCT:?}\""
+        echo "TARGET_SINGLE_SYSTEM_IMAGE=\"${TARGET_SINGLE_SYSTEM_IMAGE:?}\""
+        echo "TARGET_VENDOR_API_LEVEL=\"${TARGET_VENDOR_API_LEVEL:?}\""
+        echo "TARGET_SSRM_CONFIG_NAME=\"${TARGET_SSRM_CONFIG_NAME:?}\""
+        echo "TARGET_IS_ESIM_SUPPORTED=\"${TARGET_IS_ESIM_SUPPORTED:?}\""
+        echo "TARGET_DVFS_CONFIG_NAME=\"${TARGET_DVFS_CONFIG_NAME:?}\""
     } > "$OUT_DIR/config.sh"
 }
 
 source "$SRC_DIR/target/$1/config.sh"
-source "$SRC_DIR/unica/config.sh"
+source "$SRC_DIR/unica/configs/version.sh"
+
+if [ ! -f "$SRC_DIR/unica/configs/$TARGET_SINGLE_SYSTEM_IMAGE.sh" ]; then
+    echo "\"$TARGET_SINGLE_SYSTEM_IMAGE\" is not a valid system image"
+    exit 1
+else
+    source "$SRC_DIR/unica/configs/$TARGET_SINGLE_SYSTEM_IMAGE.sh"
+fi
 # ]
 
 GEN_CONFIG_FILE
