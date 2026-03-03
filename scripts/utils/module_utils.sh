@@ -200,7 +200,6 @@ _IS_VALID_PARTITION_NAME()
         [[ "$PARTITION" == "system_ext" ]] || [[ "$PARTITION" == "odm" ]] || [[ "$PARTITION" == "vendor_dlkm" ]] || \
         [[ "$PARTITION" == "odm_dlkm" ]] || [[ "$PARTITION" == "system_dlkm" ]]
 }
-# ]
 
 # ADD_TO_WORK_DIR <source> <partition> <file/dir> <user> <group> <mode> <label>
 # Adds the supplied file/directory in work dir along with its entries in fs_config/file_context.
@@ -213,9 +212,9 @@ _IS_VALID_PARTITION_NAME()
 # `user`/`group`/`mode`/`label`/ arguments can be omitted as long as the respective entry is present in `source`/fs_config and `source`/file_context.
 ADD_TO_WORK_DIR()
 {
-    _CHECK_NON_EMPTY_PARAM "SOURCE" "$1"
-    _CHECK_NON_EMPTY_PARAM "PARTITION" "$2"
-    _CHECK_NON_EMPTY_PARAM "FILE" "$3"
+    _CHECK_NON_EMPTY_PARAM "SOURCE" "$1" || return 1
+    _CHECK_NON_EMPTY_PARAM "PARTITION" "$2" || return 1
+    _CHECK_NON_EMPTY_PARAM "FILE" "$3" || return 1
 
     local SOURCE="$1"
     local PARTITION="$2"
@@ -234,12 +233,12 @@ ADD_TO_WORK_DIR()
     fi
 
     if [ ! -d "$SOURCE" ]; then
-        _ECHO_STDERR ERR "Folder not found: ${SOURCE//$SRC_DIR\//}"
+        LOGE "Folder not found: ${SOURCE//$SRC_DIR\//}"
         return 1
     fi
 
-    if ! _IS_VALID_PARTITION_NAME "$PARTITION"; then
-        _ECHO_STDERR ERR "\"$PARTITION\" is not a valid partition name"
+    if ! IS_VALID_PARTITION_NAME "$PARTITION"; then
+        LOGE "\"$PARTITION\" is not a valid partition name"
         return 1
     fi
 
@@ -258,27 +257,11 @@ ADD_TO_WORK_DIR()
             SOURCE_FILE+="/system/system_ext/$FILE"
         fi
 
-        if $TARGET_HAS_SYSTEM_EXT; then
+        if $TARGET_OS_BUILD_SYSTEM_EXT_PARTITION; then
             TARGET_FILE+="/system_ext/$FILE"
         else
             PARTITION="system"
             FILE="system/system_ext/$FILE"
-            TARGET_FILE+="/system/$FILE"
-        fi
-    elif [[ "$PARTITION" == "product" ]]; then
-        if [ -d "$SOURCE/product" ]; then
-            SOURCE_FILE+="/product/$FILE"
-        elif [ -d "$SOURCE/system/system/product" ]; then
-            SOURCE_FILE+="/system/system/product/$FILE"
-        else
-            SOURCE_FILE+="/system/product/$FILE"
-        fi
-
-        if $TARGET_HAS_PRODUCT; then
-            TARGET_FILE+="/product/$FILE"
-        else
-            PARTITION="system"
-            FILE="system/product/$FILE"
             TARGET_FILE+="/system/$FILE"
         fi
     elif [[ "$PARTITION" == "system" ]]; then
@@ -296,19 +279,21 @@ ADD_TO_WORK_DIR()
 
     if [ ! -e "$SOURCE_FILE" ] && [ ! -L "$SOURCE_FILE" ]; then
         if [ -e "$SOURCE_FILE.00" ]; then
+            LOG "- Adding $(sed -e "s|$WORK_DIR||" -e "s|/\.||" <<< "$TARGET_FILE") from ${SOURCE//$SRC_DIR\//}"
             mkdir -p "$(dirname "$TARGET_FILE")"
-            cat "$SOURCE_FILE."* > "$TARGET_FILE"
+            EVAL "cat \"$SOURCE_FILE.\"[0-9][0-9] > \"$TARGET_FILE\"" || exit 1
         else
-            _ECHO_STDERR ERR "File not found: ${SOURCE_FILE//$SRC_DIR\//}"
+            LOGE "File not found: ${SOURCE_FILE//$SRC_DIR\//}"
             return 1
         fi
     else
+        LOG "- Adding $(sed -e "s|$WORK_DIR||" -e "s|/\.||" <<< "$TARGET_FILE") from ${SOURCE//$SRC_DIR\//}"
         if [ ! -d "$SOURCE_FILE" ]; then
             mkdir -p "$(dirname "$TARGET_FILE")"
         else
             mkdir -p "$TARGET_FILE"
         fi
-        cp -a -T "$SOURCE_FILE" "$TARGET_FILE"
+        EVAL "cp -a -T \"$SOURCE_FILE\" \"$TARGET_FILE\"" || exit 1
     fi
 
     local ENTRY="${TARGET_FILE//$WORK_DIR\//}"
@@ -321,7 +306,7 @@ ADD_TO_WORK_DIR()
         elif grep -q -F "$ENTRY " "$SOURCE/fs_config-$PARTITION" 2> /dev/null; then
             grep -F "$ENTRY " "$SOURCE/fs_config-$PARTITION" >> "$WORK_DIR/configs/fs_config-$PARTITION"
         else
-            _ECHO_STDERR WARN "No fs_config entry found for \"$ENTRY\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
+            LOGW "No fs_config entry found for \"$ENTRY\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
 
             USER=0
             GROUP=0
@@ -341,7 +326,7 @@ ADD_TO_WORK_DIR()
         elif grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$ENTRY") " "$SOURCE/file_context-$PARTITION" 2> /dev/null; then
             grep -F "/$(_HANDLE_SPECIAL_CHARS "$ENTRY") " "$SOURCE/file_context-$PARTITION" >> "$WORK_DIR/configs/file_context-$PARTITION"
         else
-            _ECHO_STDERR WARN "No file_context entry found for \"$ENTRY\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
+            LOGW "No file_context entry found for \"$ENTRY\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
 
             LABEL="$(_GET_SELINUX_LABEL "$PARTITION" "/$ENTRY")"
 
@@ -354,18 +339,16 @@ ADD_TO_WORK_DIR()
         FILES="$(find "${SOURCE_FILE%/.}")"
         FILES="${FILES//$SOURCE\//}"
         [[ "$PARTITION" == "system" ]] && FILES="${FILES//system\/system\//system/}"
-        $TARGET_HAS_SYSTEM_EXT || FILES="${FILES//system_ext\//system/system_ext/}"
-	$TARGET_HAS_PRODUCT || FILES="${FILES//product\//system/product/}"
+        $TARGET_OS_BUILD_SYSTEM_EXT_PARTITION || FILES="${FILES//system_ext\//system/system_ext/}"
 
-        # shellcheck disable=SC2116
-        for f in $(echo "$FILES"); do
-            _IS_VALID_PARTITION_NAME "$f" && continue
+        while IFS= read -r f; do
+            IS_VALID_PARTITION_NAME "$f" && continue
 
             if ! grep -q -F "$f " "$WORK_DIR/configs/fs_config-$PARTITION" 2> /dev/null; then
                 if grep -q -F "$f " "$SOURCE/fs_config-$PARTITION" 2> /dev/null; then
                     grep -F "$f " "$SOURCE/fs_config-$PARTITION" >> "$WORK_DIR/configs/fs_config-$PARTITION"
                 else
-                    _ECHO_STDERR WARN "No fs_config entry found for \"$f\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
+                    LOGW "No fs_config entry found for \"$f\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
 
                     USER=0
                     GROUP=0
@@ -383,27 +366,27 @@ ADD_TO_WORK_DIR()
                 if grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$f") " "$SOURCE/file_context-$PARTITION" 2> /dev/null; then
                     grep -F "/$(_HANDLE_SPECIAL_CHARS "$f") " "$SOURCE/file_context-$PARTITION" >> "$WORK_DIR/configs/file_context-$PARTITION"
                 else
-                    _ECHO_STDERR WARN "No file_context entry found for \"$f\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
+                    LOGW "No file_context entry found for \"$f\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
 
                     LABEL="$(_GET_SELINUX_LABEL "$PARTITION" "/$f")"
 
                     echo "/$(_HANDLE_SPECIAL_CHARS "$f") $LABEL" >> "$WORK_DIR/configs/file_context-$PARTITION"
                 fi
             fi
-        done
+        done <<< "$FILES"
     else
         local TMP="${TARGET_FILE%/.}"
         TMP="$(dirname "${TMP//$WORK_DIR\//}")"
         [[ "$PARTITION" == "system" ]] && TMP="${TMP//system\/system\//system/}"
 
         while [[ "$TMP" != "." ]]; do
-            _IS_VALID_PARTITION_NAME "$TMP" && break
+            IS_VALID_PARTITION_NAME "$TMP" && break
 
             if ! grep -q -F "$TMP " "$WORK_DIR/configs/fs_config-$PARTITION" 2> /dev/null; then
                 if grep -q -F "$TMP " "$SOURCE/fs_config-$PARTITION" 2> /dev/null; then
                     grep -F "$TMP " "$SOURCE/fs_config-$PARTITION" >> "$WORK_DIR/configs/fs_config-$PARTITION"
                 else
-                    _ECHO_STDERR WARN "No fs_config entry found for \"$TMP\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
+                    LOGW "No fs_config entry found for \"$TMP\" in \"${SOURCE//$SRC_DIR\//}\". Using default values"
 
                     USER=0
                     GROUP=0
@@ -418,7 +401,7 @@ ADD_TO_WORK_DIR()
                 if grep -q -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$SOURCE/file_context-$PARTITION" 2> /dev/null; then
                     grep -F "/$(_HANDLE_SPECIAL_CHARS "$TMP") " "$SOURCE/file_context-$PARTITION" >> "$WORK_DIR/configs/file_context-$PARTITION"
                 else
-                    _ECHO_STDERR WARN "No file_context entry found for \"$TMP\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
+                    LOGW "No file_context entry found for \"$TMP\" in \"${SOURCE//$SRC_DIR\//}\". Using default value"
 
                     LABEL="$(_GET_SELINUX_LABEL "$PARTITION" "/$TMP")"
 
@@ -560,7 +543,7 @@ GET_GALAXY_STORE_DOWNLOAD_URL()
     local PACKAGE="$1"
     local OUT
 
-    OUT="$(curl -L -s "https://vas.samsungapps.com/stub/stubDownload.as?appId=$PACKAGE&deviceId=SM-A366B&mcc=505&mnc=03&csc=EUX&sdkVer=36&extuk=a59839d085b95518&pd=0")"
+    OUT="$(curl -L -s "https://vas.samsungapps.com/stub/stubDownload.as?appId=$PACKAGE&deviceId=SM-S931B&mcc=505&mnc=03&csc=CAU&sdkVer=36&extuk=a59839d085b95518&pd=0")"
 
     if grep -q "Download URI Available" <<< "$OUT"; then
         grep "downloadURI" <<< "$OUT" | cut -d ">" -f 2 | sed -e 's/<!\[CDATA\[//g; s/\]\]//g'
@@ -836,4 +819,146 @@ SET_PROP_IF_DIFF()
     local CURRENT
     CURRENT="$(GET_PROP "$PARTITION" "$PROP")"
     [ -z "$CURRENT" ] || [ "$CURRENT" = "$EXPECTED" ] || SET_PROP "$PARTITION" "$PROP" "$EXPECTED"
+}
+
+IS_VALID_PARTITION_NAME()
+{
+    local PARTITION="$1"
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#131
+    [[ "$PARTITION" == "system" ]]
+}
+
+EVAL()
+{
+    _CHECK_NON_EMPTY_PARAM "CMD" "$1" || return 1
+
+    local CMD="$1"
+
+    local OUT
+    OUT="$(eval "$CMD" 2>&1)"
+    # shellcheck disable=SC2181,SC2291
+    if [ $? -ne 0 ]; then
+        _ECHO_STDERR ERR "Command returned a non-zero exit code\n"
+        echo -e    '\033[0;31m'"$CMD"'\033[0m\n' >&2
+        echo -n -e '\033[0;33m' >&2
+        echo -n    "$OUT" >&2
+        echo -e    '\033[0m' >&2
+        return 1
+    fi
+
+    return 0
+}
+
+APPLY_PATCH()
+{
+    _CHECK_NON_EMPTY_PARAM "PARTITION" "$1" || return 1
+    _CHECK_NON_EMPTY_PARAM "FILE" "$2" || return 1
+    _CHECK_NON_EMPTY_PARAM "PATCH" "$3" || return 1
+
+    local PARTITION="$1"
+    local FILE="$2"
+    local PATCH="$3"
+
+    if ! IS_VALID_PARTITION_NAME "$PARTITION"; then
+        _ECHO_STDERR ERR "\"$PARTITION\" is not a valid partition name"
+        return 1
+    fi
+
+    if [ ! -f "$PATCH" ]; then
+        _ECHO_STDERR ERR "File not found: ${PATCH//$SRC_DIR\//}"
+        return 1
+    fi
+
+    while [[ "${FILE:0:1}" == "/" ]]; do
+        FILE="${FILE:1}"
+    done
+
+    DECODE_APK "$PARTITION" "$FILE" || return 1
+
+    echo "- Applying \"$(grep "^Subject:" "$PATCH" | sed "s/.*PATCH] //; s/.*PATCH .\/.] //")\" to /$PARTITION/$FILE"
+    EVAL "LC_ALL=C git apply --directory=\"$APKTOOL_DIR/$PARTITION/${FILE//system\//}\" --verbose --unsafe-paths \"$PATCH\"" || return 1
+}
+
+# [
+_GET_CALLER_INFO()
+{
+    if [[ "${FUNCNAME[2]}" != "main" ]]; then
+        echo -n "("
+        if [ "${BASH_SOURCE[3]}" ]; then
+            echo -n "${BASH_SOURCE[3]//$SRC_DIR\//}:"
+        fi
+        if [ "${BASH_LINENO[2]}" ]; then
+            echo -n "${BASH_LINENO[2]}:"
+        fi
+        echo -n "${FUNCNAME[2]}) "
+    else
+        echo -n "("
+        if [ "${BASH_SOURCE[2]}" ]; then
+            echo -n "${BASH_SOURCE[2]//$SRC_DIR\//}:"
+        fi
+        if [ "${BASH_LINENO[1]}" ]; then
+            echo -n "${BASH_LINENO[1]}"
+        fi
+        echo -n ") "
+    fi
+}
+# ]
+
+# LOG <message>
+# Prints a log message in the build output.
+LOG()
+{
+    local INDENT="${INDENT_LEVEL:=0}"
+
+    echo -e "$(printf "%*s%s" "$INDENT" "" "$1")"
+}
+
+# LOGE <message>
+# Prints an error log message in the build output.
+LOGE()
+{
+    local RED="\033[0;31m"
+    local RESET="\033[0m"
+
+    echo -e "${RED}$(_GET_CALLER_INFO)${1}${RESET}" >&2
+}
+
+# LOGW <message>
+# Prints a warning log message in the build output.
+LOGW()
+{
+    local YELLOW="\033[0;33m"
+    local RESET="\033[0m"
+
+    echo -e "${YELLOW}$(_GET_CALLER_INFO)${1}${RESET}" >&2
+}
+
+# LOG_STEP_IN <bold> <message>
+# Increments the output indentation, additionally prints a log message if supplied.
+LOG_STEP_IN()
+{
+    local BOLD
+    local RESET="\033[0m"
+
+    if [[ "$1" == "true" ]]; then
+        BOLD="\033[1;37m"
+        shift
+    fi
+
+    if [ "$1" ]; then
+        LOG "${BOLD}${1}${RESET}"
+    fi
+
+    local INDENT="${INDENT_LEVEL:=0}"
+    export INDENT_LEVEL="$((INDENT + 2))"
+}
+
+# LOG_STEP_OUT
+# Reduces the output indentation.
+LOG_STEP_OUT()
+{
+    local INDENT="${INDENT_LEVEL:=0}"
+    if [ "$INDENT_LEVEL" -gt 0 ]; then
+        export INDENT_LEVEL=$((INDENT - 2))
+    fi
 }
