@@ -1,0 +1,4 @@
+id=blobs
+name=Blobs
+author=salvogiangri, Tisenu100, Peter Knecht
+description=Replaces source blobs with target-compatible ones.
