@@ -78,7 +78,7 @@ fi
 if [[ "$SOURCE_DVFS_CONFIG_NAME" != "$TARGET_DVFS_CONFIG_NAME" ]]; then
     LOG_STEP_IN "- Applying SSRM patches"
     
-    ADD_TO_WORK_DIR "dm1qksx" "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
+    ADD_TO_WORK_DIR "dm1qxxx" "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
     APPLY_PATCH "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" \
         "$SRC_DIR/unica/patches/product_feature/sdhms/0001-Remove-SSRM-Warning.patch"
 
