@@ -108,14 +108,6 @@ system/priv-app/YourPhone_P1_5
 system/priv-app/Upday
 "
 
-if [[ "$TARGET_SINGLE_SYSTEM_IMAGE" = "qssi" ]]; then
-    SYSTEM_DEBLOAT+="
-    system/app/DictDiotekForSec
-    system/app/SamsungCalendar
-    system/app/SmartReminder
-    "
-fi
-
 
 # fabric_crypto
 if [[ "$TARGET_API_LEVEL" -lt 34 ]]; then
