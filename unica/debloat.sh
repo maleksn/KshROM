@@ -116,19 +116,6 @@ if [[ "$TARGET_SINGLE_SYSTEM_IMAGE" = "qssi" ]]; then
     "
 fi
 
-# eSIM
-if $SOURCE_IS_ESIM_SUPPORTED; then
-    if ! $TARGET_IS_ESIM_SUPPORTED; then
-        SYSTEM_DEBLOAT+="
-        system/etc/permissions/privapp-permissions-com.samsung.android.app.esimkeystring.xml
-        system/etc/permissions/privapp-permissions-com.samsung.euicc.xml
-        system/etc/sysconfig/preinstalled-packages-com.samsung.android.app.esimkeystring.xml
-        system/etc/sysconfig/preinstalled-packages-com.samsung.euicc.xml
-        system/priv-app/EsimKeyString
-        system/priv-app/EuiccService
-        "
-    fi
-fi
 
 # fabric_crypto
 if [[ "$TARGET_API_LEVEL" -lt 34 ]]; then
