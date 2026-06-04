@@ -23,8 +23,6 @@ LOG_STEP_OUT
 LOG_STEP_IN "- Patching saiv"
     EVAL "rm -r \"$WORK_DIR/system/system/saiv/\"*"
     EVAL "cp -a \"$SRC_DIR/target/$TARGET_CODENAME/patches/blobs/saiv/system/saiv/\"* \"$WORK_DIR/system/system/saiv/\""
-    #S21 FE already has it
-    #EVAL "cp -a \"$SRC_DIR/target/$TARGET_CODENAME/patches/blobs/saiv/system/etc/saiv/\"* \"$WORK_DIR/system/system/etc/saiv/\""
     echo "/system u:object_r:system_file:s0" >> "$WORK_DIR/configs/file_context-system"
     echo "/system/saiv u:object_r:system_file:s0" >> "$WORK_DIR/configs/file_context-system"
     echo "/system/saiv/image_understanding u:object_r:system_file:s0" >> "$WORK_DIR/configs/file_context-system"
@@ -87,24 +85,7 @@ LOG_STEP_IN "- Adding soundbooster blobs"
     echo "system/lib64/lib_SoundBooster_ver1000.so 0 0 644 capabilities=0x0" >> "$WORK_DIR/configs/fs_config-system"
 LOG_STEP_OUT
       
-LOG_STEP_IN "- Replacing hwui"
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib/libhwui.so"
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libhwui.so"
-LOG_STEP_OUT
-
-LOG_STEP_IN "- Fixing DeX"
-DONOR="dm1qksx"
-    ADD_TO_WORK_DIR "$DONOR" "system" "system/apex/com.android.runtime.apex" 0 0 644 "u:object_r:system_file:s0"
-    ADD_TO_WORK_DIR "$DONOR" "system" "system/apex/com.android.i18n.apex" 0 0 644 "u:object_r:system_file:s0"
-    EVAL "cp -a --preserve=all \"$SRC_DIR/prebuilts/samsung/$DONOR/system/lib\" \"$WORK_DIR/system/system\""
-    EVAL "cat \"$SRC_DIR/prebuilts/samsung/$DONOR/fs_config-system\" | grep -F \"system/lib/\" >> \"$WORK_DIR/configs/fs_config-system\""
-    EVAL "cat \"$SRC_DIR/prebuilts/samsung/$DONOR/file_context-system\" | grep -F \"system/lib/\" >> \"$WORK_DIR/configs/file_context-system\""
-    EVAL "cp -a --preserve=all \"$SRC_DIR/prebuilts/samsung/$DONOR/system_ext/lib\" \"$WORK_DIR/system/system/system_ext\""
-    EVAL "cat \"$SRC_DIR/prebuilts/samsung/$DONOR/fs_config-system_ext\" | grep -F \"system/system_ext/lib/\" >> \"$WORK_DIR/configs/fs_config-system\""
-    EVAL "cat \"$SRC_DIR/prebuilts/samsung/$DONOR/file_context-system_ext\" | grep -F \"system/system_ext/lib/\" >> \"$WORK_DIR/configs/file_context-system\""
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libhdcp2.so" 0 0 644 "u:object_r:system_lib_file:s0"
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libremotedisplay_wfd.so" 0 0 644 "u:object_r:system_lib_file:s0"
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libremotedisplayservice.so" 0 0 644 "u:object_r:system_lib_file:s0"
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libsecuibc.so" 0 0 644 "u:object_r:system_lib_file:s0"
-    ADD_TO_WORK_DIR "a73xqxx" "system" "system/lib64/libstagefright_hdcp.so" 0 0 644 "u:object_r:system_lib_file:s0"
+LOG_STEP_IN "- Patching VINTF"
+    EVAL "cp -a \"$SRC_DIR/target/$TARGET_CODENAME/patches/blobs/vintf/compatibility_matrix.device.xml\" \"$WORK_DIR/system/system/etc/vintf/compatibility_matrix.device.xml\""
+    EVAL "cp -a \"$SRC_DIR/target/$TARGET_CODENAME/patches/blobs/vintf/manifest.xml\" \"$WORK_DIR/system/system/etc/vintf/manifest.xml\""
 LOG_STEP_OUT
