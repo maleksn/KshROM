@@ -32,10 +32,20 @@ DOWNLOAD_FIRMWARE()
     local PDR
     PDR="$(pwd)"
 
+    mkdir -p "$ODIN_DIR/${MODEL}_${REGION}"
     cd "$ODIN_DIR"
-    { samfirm -m "$MODEL" -r "$REGION" -i "$IMEI" > /dev/null; } 2>&1 \
+    source "$OUT_DIR/tools/venv/bin/activate"
+    samloader -m "$MODEL" -r "$REGION" -i "$IMEI" download -O "$ODIN_DIR/${MODEL}_${REGION}" > /dev/null \
         && touch "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" \
         || exit 1
+    deactivate
+
+    local ZIP_FILE
+    ZIP_FILE="$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "*.zip" | sort -r | head -n 1)"
+    if [ "$ZIP_FILE" ] && [ -f "$ZIP_FILE" ]; then
+        unzip -o "$ZIP_FILE" -d "$ODIN_DIR/${MODEL}_${REGION}" && rm -rf "$ZIP_FILE"
+    fi
+
     [ -f "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" ] && {
         echo -n "$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*" -exec basename {} \; | cut -d "_" -f 2)/"
         echo -n "$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CSC*" -exec basename {} \; | cut -d "_" -f 3)/"

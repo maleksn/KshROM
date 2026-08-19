@@ -75,7 +75,7 @@ EXTRACT_CSC_PARTITIONS()
         tar tf "$CSC_TAR" "$file" &>/dev/null || continue
         echo "Extracting ${file%.img.lz4}"
         tar xf "$CSC_TAR" "$file" && lz4 -d -q --rm "$file" "${file%.lz4}.sparse"
-	simg2img "${file%.lz4}.sparse" "${file%.lz4}" && rm "${file%.lz4}.sparse"
+    simg2img "${file%.lz4}.sparse" "${file%.lz4}" && rm "${file%.lz4}.sparse"
 
         [ -d "tmp_out" ] && mountpoint -q "tmp_out" && sudo umount "tmp_out"
         mkdir -p "tmp_out"
@@ -156,17 +156,34 @@ EXTRACT_OS_PARTITIONS()
     if $SHOULD_EXTRACT; then
         if [ ! -f "lpdump" ] || $SHOULD_EXTRACT_SUPER; then
             echo "Extracting super.img"
-            tar xf "$AP_TAR" "super.img.lz4"
+            if [ -f "$AP_TAR" ]; then
+                tar xf "$AP_TAR" "super.img.lz4"
+            else
+                local ENC_SUPER
+                ENC_SUPER="$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "*.enc4" | head -n 1)"
+                if [ -n "$ENC_SUPER" ]; then
+                    source "$OUT_DIR/tools/venv/bin/activate"
+                    samloader -m "$MODEL" -r "$REGION" -i "$IMEI" decrypt -W "$ENC_SUPER" -O "$ODIN_DIR/${MODEL}_${REGION}" > /dev/null
+                    deactivate
+                fi
+                local DEC_ZIP
+                DEC_ZIP="$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "*.zip" | sort -r | head -n 1)"
+                if [ -n "$DEC_ZIP" ]; then
+                    unzip -o "$DEC_ZIP" -d "$ODIN_DIR/${MODEL}_${REGION}" && rm -rf "$DEC_ZIP"
+                fi
+                AP_TAR="$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*" | sort -r | head -n 1)"
+                tar xf "$AP_TAR" "super.img.lz4"
+            fi
             lz4 -d -q --rm "super.img.lz4" "super.img.sparse"
             simg2img "super.img.sparse" "super.img" && rm "super.img.sparse"
             { lpunpack "super.img" > /dev/null; } 2>&1
             lpdump "super.img" > "lpdump" && rm "super.img"
 
-	    if [ -f "system_a.img" ]; then
-		echo "Dyanamic Partitions Detected!"
-		COMMON_FOLDERS="odm_a product_a system_a vendor_a"
-		PARTITION_MASK="_a.img"
-	    fi
+        if [ -f "system_a.img" ]; then
+        echo "Dyanamic Partitions Detected!"
+        COMMON_FOLDERS="odm_a product_a system_a vendor_a"
+        PARTITION_MASK="_a.img"
+        fi
         fi
 
         [ -d "tmp_out" ] && mountpoint -q "tmp_out" && sudo umount "tmp_out"
@@ -269,9 +286,27 @@ EXTRACT_AVB_BINARIES()
 
 EXTRACT_ALL()
 {
-    BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "BL*")
-    CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CSC*")
-    AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*")
+    BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "BL*" | head -n 1)
+    CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CSC*" | head -n 1)
+    AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*" | head -n 1)
+
+    if [ ! -f "$AP_TAR" ] || [ ! -f "$BL_TAR" ]; then
+        local ENC_FILE
+        ENC_FILE="$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "*.enc4" | head -n 1)"
+        if [ -n "$ENC_FILE" ]; then
+            source "$OUT_DIR/tools/venv/bin/activate"
+            samloader -m "$MODEL" -r "$REGION" -i "$IMEI" decrypt -W "$ENC_FILE" -O "$ODIN_DIR/${MODEL}_${REGION}" > /dev/null
+            deactivate
+        fi
+        local DEC_ZIP
+        DEC_ZIP="$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "*.zip" | sort -r | head -n 1)"
+        if [ -n "$DEC_ZIP" ]; then
+            unzip -o "$DEC_ZIP" -d "$ODIN_DIR/${MODEL}_${REGION}" && rm -rf "$DEC_ZIP"
+        fi
+        BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "BL*" | head -n 1)
+        CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CSC*" | head -n 1)
+        AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*" | head -n 1)
+    fi
 
     mkdir -p "$FW_DIR/${MODEL}_${REGION}"
     EXTRACT_KERNEL_BINARIES
@@ -331,6 +366,7 @@ for i in "${FIRMWARES[@]}"
 do
     MODEL=$(echo -n "$i" | cut -d "/" -f 1)
     REGION=$(echo -n "$i" | cut -d "/" -f 2)
+    IMEI=$(echo -n "$i" | cut -d "/" -f 3)
 
     if [ -f "$FW_DIR/${MODEL}_${REGION}/.extracted" ]; then
         [ -z "$(GET_LATEST_FIRMWARE)" ] && continue
