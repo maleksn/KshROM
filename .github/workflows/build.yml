@@ -1,0 +1,80 @@
+name: Build KshROM (a70q)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo docker builder prune -a
+
+      - name: Maximize root storage
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: false
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 1
+
+      - name: Set up build environment
+        run: |
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+            7zip attr ccache clang ffmpeg \
+            libbrotli-dev libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
+            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp
+          sudo modprobe erofs f2fs
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p security
+          if [ ! -s security/unica_platform.pk8 ]; then
+            openssl genrsa -out security/unica_platform.key 2048
+            openssl req -new -x509 -key security/unica_platform.key -out security/unica_platform.x509.pem -days 10000 -subj "/C=US/ST=California/L=Mountain View/O=Android/OU=Android/CN=Android/emailAddress=android@android.com"
+            openssl pkcs8 -topk8 -inform PEM -outform DER -in security/unica_platform.key -out security/unica_platform.pk8 -nocrypt
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build dependencies
+        run: |
+          source ./buildenv.sh a70q
+          ./scripts/build_dependencies.sh
+
+      - name: Download stock firmwares
+        run: |
+          source ./buildenv.sh a70q
+          ./scripts/download_fw.sh
+
+      - name: Extract stock firmwares
+        run: |
+          source ./buildenv.sh a70q
+          ./scripts/extract_fw.sh
+
+      - name: Build ROM
+        run: |
+          source ./buildenv.sh a70q
+          ./scripts/make_rom.sh
+
+      - name: Upload ROM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KshROM-a70q
+          path: out/*.zip
+          retention-days: 5
