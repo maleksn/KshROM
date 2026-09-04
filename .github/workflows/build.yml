@@ -69,7 +69,7 @@ jobs:
 
       - name: Build ROM
         run: |
-          rm -rf unica/patches/product_feature/brightness
+          sed -i 's|.*Remove-Brightness-Threshold.patch.*|true|g' unica/patches/product_feature/customize.sh
           source ./buildenv.sh a70q
           ./scripts/make_rom.sh
 
