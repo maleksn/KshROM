@@ -69,6 +69,7 @@ jobs:
 
       - name: Build ROM
         run: |
+          rm -rf unica/patches/product_feature/brightness
           source ./buildenv.sh a70q
           ./scripts/make_rom.sh
 
