@@ -70,6 +70,15 @@ jobs:
       - name: Build ROM
         run: |
           sed -i 's|.*Remove-Brightness-Threshold.patch.*|true|g' unica/patches/product_feature/customize.sh
+          mkdir -p target/a70q/patches/miscs
+          cat << 'EOF' > target/a70q/patches/miscs/module.prop
+          id=kshrom_a70q
+          name=KshROM a70q Patches
+          version=1.0
+          versionCode=1
+          author=mxlano
+          description=KshROM a70q patches
+          EOF
           source ./buildenv.sh a70q
           ./scripts/make_rom.sh
 
