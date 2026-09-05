@@ -79,6 +79,8 @@ jobs:
           author=mxlano
           description=KshROM a70q patches
           EOF
+          find . -name "slens_classifer" -delete || true
+          find . -type f -name "*fs_config*" -exec sh -c 'echo "system/saiv/image_understanding/db/slens_classifer 0 0 644 0x0" >> "$1"' _ {} \; || true
           source ./buildenv.sh a70q
           ./scripts/make_rom.sh
 
